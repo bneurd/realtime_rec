@@ -3,7 +3,7 @@ from sys import exit
 from time import time
 
 
-def test(ip, port):e
+def test(ip, port):
     # configurações de conexão com o UDP
     udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     host = (ip, port)

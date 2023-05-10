@@ -1,10 +1,11 @@
 import numpy as np
+import socket
 from datetime import datetime
 from json import loads
 from multiprocessing import Process, Queue
 from sys import exit
 from time import sleep, time
-from pylsl import StreamInlet, resolve_stream
+from random import choice
 
 
 def get_data(udp, queue):
@@ -19,35 +20,33 @@ def flush_queue(queue):
         queue.get()
 
 
-def run(t_move, t_rest, protocol, name, sr, type):
+def run(t_move, n_movs, protocol, name, sr):
     
-    # configurações de conexão com o LSL
-    stream = resolve_stream('type', type)
-    inlet = StreamInlet(stream[0])
+    # configurações de conexão com o UDP
+    udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    host = ('127.0.0.1', 12345)
+    udp.bind(host)
 
-    
-    dataset = list()
-    for act in protocol:
-        trial = list()
-        
-        sample, timestamp = inlet.pull_sample()
-        if timestamp:
-            trial.append(sample)
-
-
+    # configurações de inicialização de processo
+    queue = Queue()
+    proc = Process(target=get_data, args=(udp, queue))
+    proc.start()
     
     # inicia o protocolo do experimento
     n_data = sr * t_move
     dataset = list()
-    for p in protocol:
-        
-        # aplicando um tempo de descanço
-        print('\nDescanço...\n')
-        sleep(time_rest)
+    mov = ''
+    for i in range(n_movs):
+        # seleção do movimento atual
+        while True:
+            new_mov = choice(protocol)
+            if new_mov != mov:
+                mov = new_mov
+                break
+        print(f'{i+1}º movimento: {mov.upper()}')
         
         # obtenção e tratamento dos dados
         trial = list()
-        print(p)
         flush_queue(queue)
         now = time()
         while (time() - now) < t_move:
@@ -59,10 +58,11 @@ def run(t_move, t_rest, protocol, name, sr, type):
                 proc.terminate()
                 exit()
         
+        # padronização dos dados (n_trial)
         print('N Trial:', len(trial))
-        
         if len(trial) > n_data:
             print('1ªs {} amostras descartadas'.format(len(trial) - n_data))
+            # corta dados do começo por conta do experimento
             dataset.append(trial[(len(trial) - n_data):])
         elif len(trial) == n_data:
             dataset.append(trial)
@@ -71,18 +71,16 @@ def run(t_move, t_rest, protocol, name, sr, type):
             udp.close()
             proc.terminate()
             exit()
-    
+
     # finaliza a conexão e o subprocesso
     udp.close()
     proc.terminate()
-    
+
     # salva os dados
     dataset = np.array(dataset)
     oclock = datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
     file_name = '{}_{}'.format(name, oclock)
     np.save(file_name, dataset)
-    
-    # imprime informações
     print()
     print('-' * 60)
     print('Arquivo "{}.npy" salvo! Dimensionalidade: {}'.format(
@@ -90,18 +88,13 @@ def run(t_move, t_rest, protocol, name, sr, type):
     print('-' * 60)
 
 
-if __name__ == "__main__":    
-    time_move = 8
-    time_rest = 8
-    protocol = [
-        'Fechar a mão',
-        'Fazer pinça (objeto pequeno)',
-        'Segurar caneta',
-        'Segurar cartão',
-        'Segurar copo',
-        'Fazer gancho (pegar sacola, galão, ...)',
-    ]
+def main():
+    time_move = 3
+    n_movs = 10
+    protocol = ['hand_open', 'hand_close', 'rest']
     name = '1_EMG_Rodrigo'
     sample_rate = 200
-    type = 'EMG'
-    run(time_move, time_rest, protocol, name, sample_rate, type)
+    run(time_move, n_movs, protocol, name, sample_rate)
+
+if __name__ == "__main__":
+    main()

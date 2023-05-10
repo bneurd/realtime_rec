@@ -2,7 +2,6 @@ import numpy as np
 from datetime import datetime
 from time import sleep, time
 from pylsl import StreamInlet, resolve_stream
-import string
 
 
 def run(t_move, t_rest, protocol, name, sr, type):

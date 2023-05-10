@@ -24,7 +24,7 @@ def run(t_move, t_rest, protocol, name, sr):
         now = time()
         while (time() - now) < t_move:
             try:
-                data, addr = udp.recvfrom(1024)
+                data, _ = udp.recvfrom(1024)
                 data = loads(data[:-2].decode('utf-8'))
                 trial.append(data['data'])
             except KeyboardInterrupt:
