@@ -4,24 +4,21 @@ from datetime import datetime
 from json import loads
 from multiprocessing import Process, Queue
 from sys import exit
-from time import sleep, time
+from time import time
 from random import choice
 
 
 def get_data(udp, queue):
     while True:
-        data, addr = udp.recvfrom(1024)
+        data, _ = udp.recvfrom(1024)
         data = loads(data[:-2].decode('utf-8'))
         queue.put(data['data'])
-
 
 def flush_queue(queue):
     while not queue.empty():
         queue.get()
 
-
-def run(t_move, n_movs, protocol, name, sr):
-    
+def run(t_move, n_movs, protocol, name, sr):    
     # configurações de conexão com o UDP
     udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     host = ('127.0.0.1', 12345)
@@ -87,10 +84,9 @@ def run(t_move, n_movs, protocol, name, sr):
         file_name, dataset.shape))
     print('-' * 60)
 
-
 def main():
-    time_move = 3
-    n_movs = 10
+    time_move = 20
+    n_movs = 2
     protocol = ['hand_open', 'hand_close', 'rest']
     name = '1_EMG_Rodrigo'
     sample_rate = 200
